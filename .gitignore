@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Data and indexes (large files)
+vector_db/*.index
+data/processed/*.json
+
+# Config and tokens
+.env
+.vscode/
