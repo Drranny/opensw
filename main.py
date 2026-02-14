@@ -8,9 +8,15 @@ import faiss
 import argparse
 import time
 from config import FAISS_INDEX_PATH
-from rag_pipeline.retriever import retrieve
+from rag_pipeline.hybrid_retriever import HybridRetriever
 from rag_pipeline.prompt import build_prompt
 from rag_pipeline.rag_chain import rag_answer
+
+# LangChain imports for FAISS VectorStore wrapper
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_community.docstore.in_memory import InMemoryDocstore
+from langchain_core.documents import Document
 
 def print_boxed_response(text):
     """답변 내용을 깔끔한 테두리 박스에 담아 출력합니다."""
@@ -64,6 +70,48 @@ def main():
     print(f"[INFO] Database: {len(chunks)} chunks loaded")
     print(f"[INFO] Index: FAISS loaded successfully\n")
 
+    # Step 2: Convert chunks to LangChain Document objects
+    print("[INFO] Converting chunks to Document objects...")
+    documents = []
+    for chunk in chunks:
+        doc = Document(
+            page_content=chunk.get('text', ''),
+            metadata={
+                'source': chunk.get('source_file', 'Unknown'),
+                'volume': chunk.get('volume', 'Unknown'),
+                'chunk_id': chunk.get('chunk_id', -1)
+            }
+        )
+        documents.append(doc)
+    
+    # Step 3: Wrap raw FAISS index with LangChain FAISS VectorStore
+    print("[INFO] Initializing LangChain FAISS VectorStore wrapper...")
+    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    
+    # Create index_to_docstore_id mapping
+    index_to_docstore_id = {i: str(i) for i in range(len(documents))}
+    
+    # Create InMemoryDocstore with documents
+    docstore = InMemoryDocstore({str(i): doc for i, doc in enumerate(documents)})
+    
+    # Wrap raw FAISS index
+    vectorstore = FAISS(
+        embedding_function=embeddings,
+        index=index,
+        docstore=docstore,
+        index_to_docstore_id=index_to_docstore_id
+    )
+    
+    # Step 4: Initialize HybridRetriever
+    print("[INFO] Initializing HybridRetriever (BM25 + FAISS with RRF)...")
+    retriever = HybridRetriever(
+        vectorstore=vectorstore,
+        docs=documents,
+        k=60,  # RRF constant
+        top_k=args.k
+    )
+    print("[INFO] HybridRetriever initialized successfully\n")
+
     metadata_filter = None
     if args.filter:
         try:
@@ -74,28 +122,28 @@ def main():
 
     # 1. 검색 단계 (Retrieval)
     print(f"[QUERY] {args.query}")
-    print("[PROCESS] Searching for relevant document chunks...")
+    print("[PROCESS] Searching for relevant document chunks (Hybrid Search: BM25 + Vector)...")
     
     start_search = time.perf_counter()
-    retrieved_chunks = retrieve(args.query, index, chunks, metadata_filter=metadata_filter, k=args.k)
+    retrieved_docs = retriever.invoke(args.query, metadata_filter=metadata_filter)
     end_search = time.perf_counter()
     
     # 2. 검색 결과 리포트
     print("-" * 60)
-    print(f"[DEBUG] Retrieval completed in {end_search - start_search:.4f}s")
+    print(f"[DEBUG] Hybrid Retrieval completed in {end_search - start_search:.4f}s")
     print("-" * 60)
     
-    for i, chunk in enumerate(retrieved_chunks, 1):
-        source = chunk.get('source_file', 'Unknown')
+    for i, doc in enumerate(retrieved_docs, 1):
+        source = doc.metadata.get('source', 'Unknown')
         print(f"[{i}] Source: {source}")
-        print(f"    Preview: {chunk['text'][:150]}...")
+        print(f"    Preview: {doc.page_content[:150]}...")
 
     # 3. 답변 생성 단계 (Generation)
     print("\n" + "=" * 60)
     print("  GENERATING RESPONSE VIA LOCAL LLM (EXAONE 3.5)")
     print("=" * 60)
     
-    contexts = [chunk['text'] for chunk in retrieved_chunks]
+    contexts = [doc.page_content for doc in retrieved_docs]
     prompt = build_prompt(contexts, args.query)
     
     # rag_answer 함수 내부에서 디버깅 로그가 찍힘
@@ -109,8 +157,8 @@ def main():
     print("  REFERENCE LIST")
     print("=" * 60)
     sources = []
-    for chunk in retrieved_chunks:
-        info = chunk.get('source_file', 'unknown')
+    for doc in retrieved_docs:
+        info = doc.metadata.get('source', 'unknown')
         if info not in sources:
             sources.append(info)
     
