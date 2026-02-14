@@ -4,13 +4,21 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 # 모델 설정
 MODEL_ID = "LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct"
+# Pin a known-good model revision to avoid dynamic code/API mismatch.
+MODEL_REVISION = "e949c91dec92095908d34e6b560af77dd0c993f8"
 
 print(f"[INFO] Loading Language Model: {MODEL_ID}")
+print(f"[INFO] Model Revision: {MODEL_REVISION}")
 print("[INFO] Infrastructure: CPU-Optimized (16 Cores)")
 
-tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+tokenizer = AutoTokenizer.from_pretrained(
+    MODEL_ID,
+    revision=MODEL_REVISION,
+)
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_ID,
+    revision=MODEL_REVISION,
+    code_revision=MODEL_REVISION,
     torch_dtype=torch.bfloat16,
     device_map="cpu",
     trust_remote_code=True
