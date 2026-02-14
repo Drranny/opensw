@@ -11,9 +11,13 @@ def build_prompt(contexts, query):
     # 2. EXAONE의 Instruction Following 성능을 높이는 프롬프트 구성
     # 시스템 역할과 참고 자료를 명확히 구분해줍니다.
     system_msg = (
-        "You are a helpful assistant and a Harry Potter expert. "
-        "Use the provided information to answer the user's question accurately. "
-        "If the answer is not in the information, answer based on your knowledge but mention it's not in the context."
+        "You are a truthful and accurate AI assistant specialized in Harry Potter. "
+        "Your task is to answer the user's question **ONLY based on the provided Information** below.\n\n"
+        "### Strict Rules (You MUST follow):\n"
+        "1. **No Outside Knowledge:** Do NOT use your pre-trained knowledge. Only use the text in 'Information'.\n"
+        "2. **No Hallucination:** If the answer is not in the Information, strictly say: '제공된 문서에서 해당 정보를 찾을 수 없습니다.' Do not make up an answer.\n"
+        "3. **Be Specific:** For specific entities (e.g., 'Ocean Ravenclaw'), check if the EXACT name exists. If not, state that it is not mentioned.\n"
+        "4. **Language:** Answer in Korean."
     )
     
     # EXAONE 전용 포맷팅
