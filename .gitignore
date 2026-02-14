@@ -6,6 +6,9 @@ venv/
 # Data and indexes (large files)
 vector_db/*.index
 data/processed/*.json
+data/raw/
+results/
+.venv_selee/
 
 # Config and tokens
 .env
