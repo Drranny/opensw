@@ -1,0 +1,5 @@
+{"qid":"text_001","domain":"text","query":"Who is Dudley?","gold_sources":["Book5.txt"],"gold_keywords":[],"difficulty":"easy","notes":"fill gold_keywords later"}
+{"qid":"text_002","domain":"text","query":"Why was Harry hiding outside number four?","gold_sources":["Book5.txt"],"gold_keywords":[],"difficulty":"easy","notes":"fill gold span later"}
+{"qid":"text_003","domain":"text","query":"What does the news scene imply about the Dursleys' attitude?","gold_sources":["Book5.txt"],"gold_keywords":[],"difficulty":"medium","notes":"analysis style query"}
+{"qid":"text_004","domain":"text","query":"What is Waddiwasi spell?","gold_sources":[],"gold_keywords":[],"difficulty":"medium","notes":"cross-book lore query"}
+{"qid":"text_005","domain":"text","query":"What is Harry Potter series about?","gold_sources":[],"gold_keywords":[],"difficulty":"easy","notes":"overview query"}
