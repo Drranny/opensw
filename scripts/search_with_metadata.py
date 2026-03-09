@@ -5,7 +5,14 @@
     python scripts/search_with_metadata.py
 """
 import json
+import os
+import sys
 import faiss
+
+# 프로젝트 최상단 경로를 파이썬 모듈 검색 경로에 추가합니다.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from rank_bm25 import BM25Okapi
 from ingest.embed import embed_chunks
 from rag_pipeline.retriever import retrieve
 from config import FAISS_INDEX_PATH
@@ -13,6 +20,9 @@ from config import FAISS_INDEX_PATH
 # 청크 로드
 with open("data/processed/chunks.json", "r", encoding="utf-8") as f:
     chunks = json.load(f)
+
+# BM25 인덱스 초기화
+bm25_index = BM25Okapi([chunk["text"].split() for chunk in chunks])
 
 # FAISS 인덱스 로드
 index = faiss.read_index(FAISS_INDEX_PATH)
@@ -23,11 +33,12 @@ print("예시 1: 리뷰만 검색")
 print("=" * 60)
 query = "What did critics say about the movie?"
 review_chunks = retrieve(
-    query, 
-    index, 
-    chunks, 
+    query,
+    index,
+    chunks,
     metadata_filter={"source": "review"},
-    k=3
+    k=3,
+    bm25=bm25_index,
 )
 print(f"검색 결과: {len(review_chunks)}개")
 for i, chunk in enumerate(review_chunks, 1):
@@ -44,7 +55,8 @@ book_chunks = retrieve(
     index,
     chunks,
     metadata_filter={"source": "book", "volume": 1},
-    k=3
+    k=3,
+    bm25=bm25_index,
 )
 print(f"검색 결과: {len(book_chunks)}개")
 for i, chunk in enumerate(book_chunks, 1):
@@ -61,7 +73,8 @@ lore_chunks = retrieve(
     index,
     chunks,
     metadata_filter={"source": "lore", "topic": "spells"},
-    k=3
+    k=3,
+    bm25=bm25_index,
 )
 print(f"검색 결과: {len(lore_chunks)}개")
 for i, chunk in enumerate(lore_chunks, 1):
@@ -78,7 +91,8 @@ character_chunks = retrieve(
     index,
     chunks,
     metadata_filter={"source": "lore", "topic": "character"},
-    k=3
+    k=3,
+    bm25=bm25_index,
 )
 print(f"검색 결과: {len(character_chunks)}개")
 for i, chunk in enumerate(character_chunks, 1):
@@ -90,7 +104,7 @@ print("\n" + "=" * 60)
 print("예시 5: 필터 없이 전체 검색")
 print("=" * 60)
 query = "What is Harry Potter about?"
-all_chunks = retrieve(query, index, chunks, k=3)
+all_chunks = retrieve(query, index, chunks, k=3, bm25=bm25_index)
 print(f"검색 결과: {len(all_chunks)}개")
 for i, chunk in enumerate(all_chunks, 1):
     print(f"\n[{i}] {chunk.get('source_file')} (source: {chunk.get('source')})")

@@ -225,37 +225,90 @@ def split_structure_text(text: str, chunk_size: int, overlap: int) -> List[str]:
 
 def _iter_ast_chunks(tree: ast.AST, source: str) -> List[Dict]:
     chunks: List[Dict] = []
+    lines = source.splitlines()
 
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef, ast.If, ast.For, ast.While, ast.Try, ast.With)):
+    class _Visitor(ast.NodeVisitor):
+        def __init__(self):
+            self._stack: List[str] = []
+
+        def _node_label(self, node: ast.AST) -> str:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                return f"function:{node.name}"
+            if isinstance(node, ast.ClassDef):
+                return f"class:{node.name}"
+            return node.__class__.__name__.lower()
+
+        def _visit_target(self, node: ast.AST) -> None:
             start = getattr(node, "lineno", None)
             end = getattr(node, "end_lineno", None)
-            if not start or not end:
-                continue
-            lines = source.splitlines()
-            snippet = "\n".join(lines[start - 1 : end]).strip()
-            if not snippet:
-                continue
+            if start and end:
+                snippet = "\n".join(lines[start - 1 : end]).strip()
+                if snippet:
+                    self._stack.append(self._node_label(node))
+                    chunks.append(
+                        {
+                            "text": snippet,
+                            "metadata": {
+                                "node_type": node.__class__.__name__,
+                                "start_line": start,
+                                "end_line": end,
+                                "parent": " > ".join(self._stack),
+                            },
+                        }
+                    )
+                    self.generic_visit(node)
+                    self._stack.pop()
+                    return
+            self.generic_visit(node)
 
-            parent = None
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                parent = f"function:{node.name}"
-            elif isinstance(node, ast.ClassDef):
-                parent = f"class:{node.name}"
-            else:
-                parent = node.__class__.__name__.lower()
+        visit_ClassDef = _visit_target
+        visit_FunctionDef = _visit_target
+        visit_AsyncFunctionDef = _visit_target
+        visit_If = _visit_target
+        visit_For = _visit_target
+        visit_While = _visit_target
+        visit_Try = _visit_target
+        visit_With = _visit_target
 
-            chunks.append(
-                {
-                    "text": snippet,
-                    "metadata": {
-                        "node_type": node.__class__.__name__,
-                        "start_line": start,
-                        "end_line": end,
-                        "parent": parent,
-                    },
-                }
-            )
+    _Visitor().visit(tree)
+
+    # Detect orphan code: top-level statements outside class/function definitions.
+    # Group consecutive orphan nodes (split whenever a named def appears between them).
+    _NAMED_DEFS = (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+    orphan_groups: List[List[ast.AST]] = []
+    current_group: List[ast.AST] = []
+    for _node in getattr(tree, "body", []):
+        if isinstance(_node, _NAMED_DEFS):
+            if current_group:
+                orphan_groups.append(current_group)
+                current_group = []
+        else:
+            _start = getattr(_node, "lineno", None)
+            _end = getattr(_node, "end_lineno", None)
+            if _start and _end:
+                current_group.append(_node)
+    if current_group:
+        orphan_groups.append(current_group)
+
+    for group in orphan_groups:
+        group_start = group[0].lineno
+        group_end = group[-1].end_lineno
+        snippet = "\n".join(lines[group_start - 1 : group_end]).strip()
+        if not snippet:
+            continue
+        chunks.append(
+            {
+                "text": snippet,
+                "metadata": {
+                    "node_type": "orphan",
+                    "start_line": group_start,
+                    "end_line": group_end,
+                    "parent": "",
+                    "is_orphan": True,
+                },
+            }
+        )
+
     return chunks
 
 

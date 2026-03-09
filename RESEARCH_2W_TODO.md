@@ -37,28 +37,28 @@
 
 ### Day 4: Structure-aware chunker (텍스트)
 - [x] 문단/챕터 경계 기반 청킹 구현
-- [ ] source/book/chapter metadata 보존
+- [x] source/book/chapter metadata 보존
 - [ ] 작은 chunk size 조건에서도 문맥 유지 정책 추가
 - 산출물: 텍스트 구조 인식 chunk 결과
 
 ### Day 5: Structure-aware chunker (코드, AST)
-- [ ] Python `ast` 기반 class/function/control block 청킹
-- [ ] 부모 컨텍스트 메타데이터 주입
-  - [ ] 예: `Parent: Class X > def y`
-- [ ] orphan 코드 탐지 로직(초기 버전) 구현
+- [x] Python `ast` 기반 class/function/control block 청킹
+- [x] 부모 컨텍스트 메타데이터 주입
+  - [x] 예: `Parent: Class X > def y`
+- [x] orphan 코드 탐지 로직(초기 버전) 구현
 - 산출물: 코드 구조 인식 chunk 결과
 
 ### Day 6: 인덱싱/검색 파이프라인 통합
 - [x] Embedding 인덱스(FAISS) 빌드 자동화
 - [x] BM25 인덱스 구성
-- [ ] RRF fusion 점수 계산 통합
+- [x] RRF fusion 점수 계산 통합
 - [x] chunking 방식별 동일 인터페이스로 검색 가능하게 정리
 - 산출물: `scripts/run_index_and_retrieve.*` (형식은 프로젝트 표준 따름)
 
 ### Day 7: 스모크 테스트 + 수정
 - [x] 샘플 질의로 end-to-end 동작 검증
 - [x] 성능/오류 로그 수집
-- [ ] 깨지는 케이스(파싱 실패, 빈 청크, 메타데이터 누락) 수정
+- [x] 깨지는 케이스(파싱 실패, 빈 청크, 메타데이터 누락) 수정
 - 산출물: `results/smoke_report.md`
 
 ## Week 2 (본실험 + 분석 + 정리)
@@ -137,3 +137,18 @@
   - `rag_pipeline/rag_chain.py`에 모델 `revision`/`code_revision` 고정
 - [완료] 실쿼리 E2E 검증:
   - `python3 main.py --query "Who is Dudley?" --k 3` 검색/생성 진입 확인
+
+## 완료 로그 (2026-03-08)
+- [완료] `scripts/chunk_dataset.py` 업데이트: 
+  - Python AST 기반 구조 인식 청킹(`structure_code`) 구현
+  - 부모 컨텍스트(`parent`) 추적 및 고아 코드(`is_orphan`) 탐지 로직 추가
+- [완료] `rag_pipeline/retriever.py` 개선: 
+  - FAISS(Dense)와 BM25(Sparse) 검색 결과를 결합하는 RRF(Reciprocal Rank Fusion) 알고리즘 설계 및 통합
+- [완료] 하이브리드 검색 파이프라인 연동:
+  - `scripts/search_with_metadata.py`에 BM25 인덱스 로드 및 RRF 검색 적용
+  - `scripts/eval_retrieval.py` 평가 스크립트에 하이브리드 `retrieve` 인터페이스 적용 완료
+- [완료] 구조적 메타데이터 직렬화(Serialization) 파이프라인 구축: 
+  - `scripts/inject_metadata.py` 추가 (검색 엔진이 구조를 인식할 수 있도록 청크 텍스트 맨 앞에 메타데이터 헤더 결합)
+  - Data Injection -> Re-indexing -> Evaluation으로 이어지는 3단계 파이프라인 확립
+- [완료] 구조 인식 검색 E2E 스모크 테스트:
+  - 텍스트/코드 도메인 하이브리드 검색 실행 및 로직 검증 완료

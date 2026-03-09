@@ -17,11 +17,13 @@ import sys
 from typing import Dict, List, Tuple
 
 import faiss
+from rank_bm25 import BM25Okapi
 
 # Add project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ingest.embed import model
+from rag_pipeline.retriever import retrieve
 
 
 def parse_args() -> argparse.Namespace:
@@ -50,19 +52,7 @@ def load_chunks(chunks_path: str) -> List[Dict]:
         return json.load(f)
 
 
-def retrieve_top_k(query: str, index: faiss.Index, chunks: List[Dict], k: int) -> List[str]:
-    query_vec = model.encode([query]).astype("float32")
-    ids = index.search(query_vec, k)[1][0]
-
-    sources: List[str] = []
-    for idx in ids:
-        if idx < 0 or idx >= len(chunks):
-            continue
-        sources.append(chunks[idx].get("source_file", "Unknown"))
-    return sources
-
-
-def evaluate(queries: List[Dict], index: faiss.Index, chunks: List[Dict], k: int) -> Tuple[Dict, List[Dict]]:
+def evaluate(queries: List[Dict], index: faiss.Index, chunks: List[Dict], k: int, bm25_index: BM25Okapi) -> Tuple[Dict, List[Dict]]:
     evaluated = 0
     hit_count = 0
     mrr_sum = 0.0
@@ -78,7 +68,8 @@ def evaluate(queries: List[Dict], index: faiss.Index, chunks: List[Dict], k: int
         evaluated += 1
         query = q["query"]
         qid = q.get("qid", f"q_{evaluated}")
-        retrieved_sources = retrieve_top_k(query, index, chunks, k)
+        retrieved_chunks = retrieve(query, index, chunks, k=k, bm25=bm25_index)
+        retrieved_sources = [c.get("source_file", "Unknown") for c in retrieved_chunks]
 
         rank = None
         for i, src in enumerate(retrieved_sources, start=1):
@@ -118,8 +109,9 @@ def main() -> None:
     args = parse_args()
     queries = load_queries(args.queries)
     chunks = load_chunks(args.chunks)
+    bm25_index = BM25Okapi([chunk["text"].split() for chunk in chunks])
     index = faiss.read_index(args.index)
-    metrics, per_query = evaluate(queries, index, chunks, args.k)
+    metrics, per_query = evaluate(queries, index, chunks, args.k, bm25_index)
 
     out_dir = os.path.dirname(args.out)
     if out_dir:
