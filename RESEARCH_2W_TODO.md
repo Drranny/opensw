@@ -6,7 +6,10 @@
 
 ## 성공 기준 (2주 종료 시점)
 - 텍스트/코드 도메인 모두에서 baseline 대비 구조 인식 청킹 실험 완료
-- 핵심 지표 산출 완료: `HitRate@K`, `MRR`, `Syntax Error Rate`, `Orphan Code Ratio`, `Executable Chunk Ratio`
+- 핵심 지표 산출 완료: 
+  - 1단계(검색): `HitRate@K`, `MRR`
+  - 2단계(구조): `Boundary Truncation Ratio`, `Syntax Error Rate`, `Orphan Code Ratio`, `Executable Chunk Ratio`
+  - 3단계(생성): RAGAS 기반 `Answer Relevance`, `Faithfulness`
 - 재현 가능한 실험 스크립트 + 결과표/그래프 + 분석 노트 확보
 
 ## Week 1 (구현 + 실험 준비)
@@ -63,15 +66,15 @@
 
 ## Week 2 (본실험 + 분석 + 정리)
 
-### Day 8: 본실험 1차 (텍스트)
+### Day 8: 본실험 1차 (텍스트 도메인)
 - [ ] chunk size 조건 2~3개로 baseline/proposed 일괄 실행
-- [ ] `HitRate@K`, `MRR` 계산
+- [ ] 1~3단계 평가지표 산출 (`HitRate@K`, `MRR`, `경계 절단율(Boundary Truncation Ratio)`, `RAGAS 지표`)
 - [ ] 실패 질의 사례 수집
 - 산출물: `results/text_metrics.csv`, 실패 사례 노트
 
-### Day 9: 본실험 2차 (코드)
+### Day 9: 본실험 2차 (코드 도메인)
 - [ ] 코드 질의셋으로 retrieval + 구조 지표 계산
-- [ ] `Syntax Error Rate`, `Orphan Code Ratio`, `Executable Chunk Ratio` 계산
+- [ ] 1~3단계 평가지표 산출 (`Syntax Error Rate`, `Orphan Code Ratio`, `RAGAS 지표` 등)
 - [ ] baseline/proposed 차이 로그 저장
 - 산출물: `results/code_metrics.csv`
 
