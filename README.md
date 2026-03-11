@@ -35,3 +35,4 @@
 - 2주 작업 계획: `RESEARCH_2W_TODO.md`
 - 박람회 전달 가이드: `HANDOFF_EXPO.md`
 - 팟 분리 온보딩 가이드: `POD_SPLIT_ONBOARDING.md`
+- 과목용(웹 연동) 온보딩 가이드: `COURSE_ONBOARDING.md`
