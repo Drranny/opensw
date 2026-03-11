@@ -12,8 +12,8 @@
 	- `data/processed/*.json`
 	- `results/`
 - 원문/저작권 이슈 가능 데이터
-	- `data/raw/`
-	- `data/raw_code/`
+	- 박람회 저장소(`WIS2026`)는 데모 편의를 위해 `data/raw/`, `data/raw_code/`를 포함 가능
+	- 공개 전환 시에는 라이선스/저작권 검토 후 제외 권장
 - 로컬 환경/캐시
 	- `__pycache__/`, `.venv*`, `.env`, `.vscode/`
 - 연구 참고 문서 원본
@@ -23,7 +23,7 @@
 아래 명령은 Git 추적만 해제합니다.
 
 ```bash
-git rm -r --cached data/raw data/raw_code results || true
+git rm -r --cached results || true
 git rm -r --cached data/processed || true
 git rm --cached vector_db/*.index || true
 git rm --cached route.pdf || true
