@@ -2,14 +2,26 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+.python-version
 
 # Data and indexes (large files)
 vector_db/*.index
 data/processed/*.json
-data/raw/
 results/
 .venv_selee/
+*.log
+*.tmp
+*.bak
+route.pdf
+
+# OS/Editor
+.DS_Store
+.idea/
 
 # Config and tokens
 .env
 .vscode/
+
+# Deployment outputs
+dist/
+build/
